@@ -63,12 +63,10 @@ void Plotter::SendGNUPlotCommand(std::vector<T> x, std::vector<T> y, string opti
     {
         first = false;
         gp << "plot " << gp.binFile1d(boost::make_tuple(x,y),"record") << GenerateStyleString(options) << sep;
-        std::cout << "plot " << gp.binFile1d(boost::make_tuple(x,y),"record") << GenerateStyleString(options) << sep;
     }
     else
     {
         gp << gp.binFile1d(boost::make_tuple(x,y),"record") << GenerateStyleString(options) << sep;
-        std::cout << gp.binFile1d(boost::make_tuple(x,y),"record") << GenerateStyleString(options) << sep;
     }		
 }
 

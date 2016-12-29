@@ -32,9 +32,8 @@ class Kalman
 
 		//Sends a measurement so we can begin prediction process
 		void SendMeasurement(const vec<T>& z);
-
-		vec<T> GetState() {return _x;}
-		mat<T> GetCovariance() {return _P;}
+		const vec<T>& GetState() {return _x;}
+		const mat<T>& GetCovariance() {return _P;}
 	
 	private:
 
@@ -45,7 +44,7 @@ class Kalman
 		void Correct();
 
 		//Computes the kalman gain
-		void UpdateKalmanGain();
+		const mat<T> UpdateKalmanGain() const;
 
 
 	private:
@@ -60,8 +59,7 @@ class Kalman
 		
 		vec<T> _x;             //state
 		mat<T> _P;            //Covariance
-		vec<T> _z;            //Measurement vector
-		mat<T> _K;            //Blending factor, or Kalman Gain		
+		vec<T> _z;            //Measurement vector		
 };
 
 template <class T>
@@ -81,8 +79,7 @@ _u(control_vector),
 _N(n),
 _z(vec<T>(n,0)),
 _x(vec<T>(n,0)),
-_P(mat<T>(n,n,0)),
-_K(mat<T>(n,n,0))
+_P(mat<T>(n,n,0))
 {
 	//do nothing
 }
@@ -90,19 +87,12 @@ _K(mat<T>(n,n,0))
 template <class T>
 void Kalman<T>::Predict()
 {
-	vec<T> x_minus(_N); //A Priori state
-	mat<T> P_minus(_N,_N); //A Priori covariance
-
-
-	//x_minus = A*x + B*u
-	axpy_prod(_A, _x, x_minus, true);
-	axpy_prod(_B, _u, x_minus, false);	
+	_x = prod(_A,_x) + prod(_B,_u);
 
 	//P = A*P*AT + Q
-	mat<T> temp1(_N,_N), temp2(_N,_N);
-	axpy_prod(_A, _P, temp1, true);
-	axpy_prod(temp1, trans(_A), temp2, true);
-	_P = temp2 + _Q;
+	_P = prod(_A,_P);
+	_P = prod(_P,trans(_A));
+	_P = _P +  _Q;
 }
 
 template <class T>
@@ -112,24 +102,23 @@ void Kalman<T>::Correct()
 	boost::numeric::ublas::identity_matrix<double> I (_N);
 
 	//This update K
-	UpdateKalmanGain();
+	const mat<T> K = UpdateKalmanGain();
 
 	//x = x + K*(z-H*x)
-	_x += prod( _K, _z-prod(_H,_x) );
+	_x += prod( K, _z-prod(_H,_x) );
 
 	//P = (I-K*H)*_P
-	_P = prod(I - prod(_K, _H), _P);
+	_P = prod(I - prod(K, _H), _P);
 }
 
 
 
 template <class T>
-void Kalman<T>::UpdateKalmanGain()
+const mat<T> Kalman<T>::UpdateKalmanGain() const
 {
 	mat<T> temp1(_N,_N), temp2(_N,_N), temp3(_N,_N), temp4(_N,_N);
 
 	//K = P*HT*(H*P*HT + R)^-1
-
 	temp1 = prod(_P, trans(_H));
 	temp2 = prod(_H,_P);
 	temp3 = prod(temp2, trans(_H));
@@ -138,9 +127,8 @@ void Kalman<T>::UpdateKalmanGain()
 
 	if(!success)
 		throw std::runtime_error("Unable to invert mat.  Cannot apply Kalman filter.");
-
 	
-	_K = prod(temp1, temp4);	
+	return prod(temp1, temp4);	
 }
 
 template <class T>
