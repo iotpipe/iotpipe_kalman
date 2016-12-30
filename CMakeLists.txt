@@ -1,0 +1,30 @@
+#We use version 3.1 so we can use the set(CMAKE_CXX_STANDARD 14) call.  If you have earlier versions of CMAKE you can find workarounds here: http://stackoverflow.com/questions/10851247/how-to-activate-c-11-in-cmake
+cmake_minimum_required (VERSION 3.1) 
+
+project (KalmanFilter)
+
+#Can probably use C++11 as well.
+set (CMAKE_CXX_STANDARD 14)
+
+#Set local include directories
+include_directories(src/include)
+
+
+#Setup Boost
+set(BOOST_MIN_VERSION 1.4.5)
+set(Boost_USE_STATIC_LIBS ON) 
+set(Boost_USE_MULTITHREADED OFF)  
+set(Boost_USE_STATIC_RUNTIME OFF) 
+find_package(Boost ${BOOST_MIN_VERSION} REQUIRED iostreams system filesystem)
+
+
+if(Boost_FOUND)
+	include_directories(${Boost_INCLUDE_DIRS}) 
+	add_executable(voltage_kalman examples/voltage_kalman.cpp src/Plotter.cpp)
+	target_link_libraries(voltage_kalman ${Boost_LIBRARIES})
+	
+	#Set where different executables are put
+	set_target_properties( voltage_kalman PROPERTIES RUNTIME_OUTPUT_DIRECTORY examples/ )
+endif()
+
+
