@@ -37,7 +37,7 @@ namespace Plotter
 	
 	template<typename T, typename... Args>
 	void plot(std::vector<T> x, std::vector<T> y, string options, Args ...args);
-	
+
     template <typename T>
 	string buildRangeString(const std::vector<T>& x);
 }
@@ -88,6 +88,7 @@ void Plotter::plot(std::vector<T> x, std::vector<T> y, string options, Args ...a
 
     plot(args...);
 }
+
 
 template <typename T>
 std::string Plotter::buildRangeString(const std::vector<T>& x)

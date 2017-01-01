@@ -1,5 +1,4 @@
-#ifndef KALMAN_H_
-#define KALMAN_H_
+#pragma once
 
 #include "boost/numeric/ublas/matrix.hpp"
 #include "boost/numeric/ublas/vector.hpp"
@@ -31,9 +30,17 @@ class Kalman
 		void SetInitialState(vec<T> x0, mat<T> p0) { _x = x0; _P = p0; }
 
 		//Sends a measurement so we can begin prediction process
-		void SendMeasurement(const vec<T>& z);
-		const vec<T>& GetState() {return _x;}
-		const mat<T>& GetCovariance() {return _P;}
+		void SetMeasurementNoise(const vec<T>& noise);
+		void SetMeasurement(const vec<T>& z);
+		void SetControlVector(const vec<T>& u);
+		
+		//Getters
+		const vec<T>& GetState() const {return _x;}
+		const mat<T>& GetCovariance() const {return _P;}
+		const vec<T>& GetMeasurement() const {return _z;}
+		const vec<T>& GetControlVector() const {return _u;}
+
+		void Update();
 	
 	private:
 
@@ -44,7 +51,7 @@ class Kalman
 		void Correct();
 
 		//Computes the kalman gain
-		const mat<T> UpdateKalmanGain() const;
+		void UpdateKalmanGain();
 
 
 	private:
@@ -55,11 +62,12 @@ class Kalman
 		const mat<T>& _R;    //Measurement noise covariance
 		const mat<T>& _H;    //Measurement Jacobian
 		const mat<T>& _B;    //Control mat
-		const vec<T>& _u;       //Control vector
 		
-		vec<T> _x;             //state
+		vec<T> _x;            //state
 		mat<T> _P;            //Covariance
-		vec<T> _z;            //Measurement vector		
+		mat<T> _K;            //Kalman Gain
+		vec<T> _z;            //Measurement vector
+		vec<T> _u;            //Control vector		
 };
 
 template <class T>
@@ -101,22 +109,22 @@ void Kalman<T>::Correct()
 
 	boost::numeric::ublas::identity_matrix<double> I (_N);
 
-	//This update K
-	const mat<T> K = UpdateKalmanGain();
+	//This update _K
+	UpdateKalmanGain();
 
 	//x = x + K*(z-H*x)
-	_x += prod( K, _z-prod(_H,_x) );
+	_x += prod( _K, _z-prod(_H,_x) );
 
 	//P = (I-K*H)*_P
-	_P = prod(I - prod(K, _H), _P);
+	_P = prod(I - prod(_K, _H), _P);
 }
 
 
 
 template <class T>
-const mat<T> Kalman<T>::UpdateKalmanGain() const
+void Kalman<T>::UpdateKalmanGain()
 {
-	mat<T> temp1(_N,_N), temp2(_N,_N), temp3(_N,_N), temp4(_N,_N);
+	mat<T> temp1, temp2, temp3, temp4(_H.size1(), _H.size2());
 
 	//K = P*HT*(H*P*HT + R)^-1
 	temp1 = prod(_P, trans(_H));
@@ -128,16 +136,39 @@ const mat<T> Kalman<T>::UpdateKalmanGain() const
 	if(!success)
 		throw std::runtime_error("Unable to invert mat.  Cannot apply Kalman filter.");
 	
-	return prod(temp1, temp4);	
+	_K =  prod(temp1, temp4);	
 }
 
 template <class T>
-void Kalman<T>::SendMeasurement(const vec<T>& z) 
+void Kalman<T>::SetMeasurementNoise(const vec<T>& noise) 
 { 
-	_z=z;
-	Predict();
-	Correct(); 
+	_z=prod(_H,_x) + noise;
+	std::cout << "Measurement: " << _z << std::endl;
 }
 
+template <class T>
+void Kalman<T>::SetMeasurement(const vec<T>& z) 
+{ 
+	_z=z;
+	std::cout << "Measurement: " << _z << std::endl;
+}
 
-#endif
+template <class T>
+void Kalman<T>::SetControlVector(const vec<T>& u) 
+{ 
+	_u=u;
+	std::cout << "Control Vector: " << _u << std::endl;
+}
+
+template <class T>
+void Kalman<T>::Update()
+{
+	Predict();
+	std::cout << "x_: " << _x << std::endl;
+	std::cout << "p_: " << _P << std::endl;
+	Correct(); 
+	std::cout << "K: " << _K << std::endl;
+	std::cout << "p+: " << _P << std::endl;
+	std::cout << "x+: " << _x << std::endl;
+	std::cout << "------------------------------------------------------------------------------------" << std::endl;
+}
