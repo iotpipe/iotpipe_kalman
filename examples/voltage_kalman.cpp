@@ -24,16 +24,14 @@ http://greg.czerniak.info/guides/kalman1/
 #include <string>
 #include <vector>
 
+#include <Eigen/Dense>
+
 #include "kalman.h"
 #include "Plotter.h"
 #include "WhiteNoiseSystem.h"
 
-template<typename T>
-using vec = boost::numeric::ublas::vector<T>;
-template<typename T>
-using mat = boost::numeric::ublas::matrix<T>;
-
 using namespace Plotter;
+using namespace Eigen;
 
 const double true_voltage = 0.4;
 
@@ -41,22 +39,35 @@ int main()
 {
 	const int N = 1;
 	WhiteNoiseSystem randomNoise;
-	mat<double> A(N,N,1);
-	mat<double> B(N,N,0);
-	vec<double> u(N,0);
-	mat<double> H(N,N,1);
-	mat<double> Q(N,N,0.00001);
-	mat<double> R(N,N,0.01);
+	MatrixXd A(N,N);
+	MatrixXd B(N,N);
+	VectorXd u(N);
+	MatrixXd H(N,N);
+	MatrixXd Q(N,N);
+	MatrixXd R(N,N);
 
-	Kalman<double> kalman(N, A, R, Q, H, B, u);
-	kalman.SetInitialState(vec<double>(N,0), mat<double>(N,N,1));
+
+	A<<1;
+	B<<0;
+	u<<0;
+	H<<1;
+	Q<<0.00001;
+	R<<0.01;
+
+	VectorXd x_initial(N);
+	MatrixXd P_initial(N,N);
+	x_initial<<0;
+	P_initial<<1;
+
+	Kalman kalman(N, A, R, Q, H, B, u);
+	kalman.SetInitialState(x_initial,P_initial);
 
 	std::vector<double> measurements, state, iteration,P;
 	std::cout << "Iteration, Measurements, Covariances" << std::endl;
 
-	vec<double> mn(1,0);
+	VectorXd mn(1);
 	
-	mn(0) = true_voltage;
+	mn << true_voltage;
 	kalman.SetMeasurement( mn );
 	kalman.SetControlVector( u );
 	kalman.Update();

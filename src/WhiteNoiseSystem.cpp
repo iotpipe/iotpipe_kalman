@@ -3,16 +3,15 @@
 #include "WhiteNoiseSystem.h"
 
 #include <boost/math/distributions/normal.hpp>
-#include "boost/numeric/ublas/vector.hpp"
 
-boost::numeric::ublas::vector<double>
+Eigen::VectorXd
 WhiteNoiseSystem::Measure(int n, double mean, double stdev)
 {
 	
 	boost::normal_distribution<double> nd(mean,stdev);
 	boost::variate_generator<boost::mt19937&, boost::normal_distribution<double> > measurement(_gen, nd);
     
-    boost::numeric::ublas::vector<double> vec(n);
+    Eigen::VectorXd vec(n);
 
     for(int i = 0; i < n; i++)
     {

@@ -18,18 +18,14 @@ http://greg.czerniak.info/guides/kalman1/
 #include <string>
 #include <vector>
 
+#include <Eigen/Dense>
+
 #include "kalman.h"
 #include "Plotter.h"
 #include "WhiteNoiseSystem.h"
 
-#include <boost/numeric/ublas/assignment.hpp>
-
-template<typename T>
-using vec = boost::numeric::ublas::vector<T>;
-template<typename T>
-using mat = boost::numeric::ublas::matrix<T>;
-
 using namespace Plotter;
+using namespace Eigen;
 
 const double dt = 1; //Time between measurements, given in seconds 
 const double dt2 = dt*dt; //dt^2 for convenience
@@ -44,38 +40,41 @@ int main()
 
 	WhiteNoiseSystem whiteNoise;
 
-	mat<double> A(N,N);
-	mat<double> B(N,L);
-	vec<double> u(L);
-	mat<double> H(M,N);
-	mat<double> Q(N,N); 
-	mat<double> R(M,M);
-	mat<double> P_initial(N,N);
-	vec<double> x_initial(N);
-	vec<double> z(M,0);
+	MatrixXd A(N,N);
+	MatrixXd B(N,L);
+	VectorXd u(L);
+	MatrixXd H(M,M);
+	MatrixXd Q(N,N); 
+	MatrixXd R(M,M);
+	MatrixXd P_initial(N,N);
+	VectorXd x_initial(N);
+	VectorXd z(M);
 
-	A <<= 	1,dt,
+	A << 	1,dt,
 			0,1;
 
-	B <<= 	dt2/2, dt;
+	B << 	dt2/2, dt;
 
-	u <<=	0;
+	u <<	0;
 	
-	Q <<=	dt2*dt2/4, dt*dt2/2,
+	Q <<	dt2*dt2/4, dt*dt2/2,
 		dt*dt2/2, dt2;
 	Q = Q*a_sigma*a_sigma;
 
-	H <<= 1,0;
+	H << 1,0,
+		 0,0;
 
-	R <<= 	measurement_sigma*measurement_sigma, 0,
+	R << 	measurement_sigma*measurement_sigma, 0,
 			0, measurement_sigma*measurement_sigma;		
 	
-	P_initial <<= 	0,0,
+	z << 0,0;
+
+	P_initial << 	0,0,
 					0,0;
 
-	x_initial <<= 	0,0;	
+	x_initial << 	0,0;	
 
-	Kalman<double> kalman(N, A, R, Q, H, B, u);
+	Kalman kalman(N, A, R, Q, H, B, u);
 	kalman.SetInitialState(x_initial,P_initial);
 
 	std::vector<double> measurements, x_state, xdot_state, iteration,P, control_vector;
